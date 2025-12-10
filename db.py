@@ -218,3 +218,19 @@ def load_petugas():
     df = pd.read_sql("SELECT * FROM petugas", conn)
     conn.close()
     return df
+
+# nambah tabel klasifikasi sama judul
+
+@st.cache_data
+def load_judul():
+    conn = get_connection()
+    df = pd.read_sql("SELECT * FROM judul", conn)
+    conn.close()
+    return df
+
+@st.cache_data
+def load_klasifikasi():
+    conn = get_connection()
+    df = pd.read_sql("SELECT * FROM klasifikasi", conn)
+    conn.close()
+    return df

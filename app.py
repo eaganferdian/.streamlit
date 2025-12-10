@@ -23,6 +23,8 @@ from db import (
     load_pengarang,
     load_buku_pengarang,
     load_petugas,
+    load_judul,
+    load_klasifikasi,
 )
 
 from charts import (
@@ -630,8 +632,8 @@ elif page == "Referensi data":
         "fakultas, program studi, pengarang, relasi buku-pengarang, dan petugas."
     )
 
-    tab_fak, tab_prodi, tab_peng, tab_bupeng, tab_petugas = st.tabs(
-        ["Fakultas", "Program studi", "Pengarang", "Buku-pengarang", "Petugas"]
+    tab_fak, tab_prodi, tab_peng, tab_bupeng, tab_petugas, tab_judul, tab_klasifikasi  = st.tabs(
+        ["Fakultas", "Program studi", "Pengarang", "Buku-pengarang", "Petugas", "Judul", "Klasifikasi"]
     )
 
     with tab_fak:
@@ -657,4 +659,14 @@ elif page == "Referensi data":
     with tab_petugas:
         df_pt = load_petugas()
         st.markdown("**Tabel petugas**")
+        st.dataframe(df_pt, use_container_width=True)
+
+    with tab_judul:
+        df_pt = load_judul()
+        st.markdown("**Tabel judul**")
+        st.dataframe(df_pt, use_container_width=True)
+
+    with tab_klasifikasi:
+        df_pt = load_klasifikasi()
+        st.markdown("**Tabel klasifikasi**")
         st.dataframe(df_pt, use_container_width=True)
