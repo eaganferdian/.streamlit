@@ -1,11 +1,4 @@
-"""
-app.py
-Aplikasi utama Streamlit untuk Dashboard Perpustakaan Seperlima.
-Mengatur tata letak halaman, pemanggilan data, dan pemanggilan fungsi grafik.
-"""
-
 import streamlit as st
-
 from db import load_peminjaman_detail, load_anggota, load_buku
 from charts import (
     chart_tren_bulanan_status,
@@ -21,26 +14,30 @@ from charts import (
     chart_buku_per_tahun,
 )
 
-# ======================================================
+# ==========================================
 # KONFIGURASI HALAMAN
-# ======================================================
+# ==========================================
 st.set_page_config(
-    page_title="Seperlima",
+    page_title="Seperlima Dashboard",
     page_icon="📚",
-    layout="wide"
+    layout="wide",
 )
 
-# CSS sederhana untuk header dan kartu ringkasan
-st.markdown(
-    """
-    <style>
+# ==========================================
+# CSS CUSTOM UNTUK UI YANG LEBIH PROFESIONAL
+# ==========================================
+st.markdown("""
+<style>
+    /* Header */
     .main-header {
         background: linear-gradient(90deg, #6366F1, #22C55E);
         padding: 18px 24px;
         border-radius: 18px;
         color: white;
-        margin-bottom: 18px;
+        margin-bottom: 20px;
     }
+
+    /* Kartu ringkasan */
     .metric-card {
         padding: 16px 18px;
         border-radius: 16px;
@@ -55,7 +52,7 @@ st.markdown(
         letter-spacing: 0.08em;
     }
     .metric-value {
-        font-size: 1.6rem;
+        font-size: 1.7rem;
         font-weight: 700;
         color: #F9FAFB;
     }
@@ -63,25 +60,23 @@ st.markdown(
         font-size: 0.8rem;
         color: #6B7280;
     }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+</style>
+""", unsafe_allow_html=True)
 
-# Header utama dashboard
-st.markdown(
-    """
-    <div class="main-header">
-        <h2 style="margin-bottom: 4px;">Seperlima</h2>
-        <span>Sistem Informasi Perpustakaan Kelompok 5</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# ==========================================
+# HEADER UTAMA
+# ==========================================
 
-# ======================================================
-# SIDEBAR NAVIGASI & INFORMASI
-# ======================================================
+st.markdown("""
+<div class="main-header">
+    <h2 style="margin-bottom:4px;">📚 SEPERLIMA – Dashboard Perpustakaan</h2>
+    <span>Sistem Informasi Perpustakaan Kelompok 5 • Institut Teknologi Kalimantan</span>
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# NAVIGASI SIDEBAR
+# ==========================================
 st.sidebar.title("🧭 Navigasi")
 page = st.sidebar.radio(
     "Pilih halaman",
@@ -89,38 +84,30 @@ page = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("Tentang aplikasi")
-st.sidebar.caption(
-    "Dashboard ini terhubung ke database MySQL `seperlima` sebagai sumber data "
-    "peminjaman, keanggotaan, dan koleksi perpustakaan."
-)
+st.sidebar.caption("Dashboard ini menampilkan visualisasi real-time dari database `seperlima`.")
 
-
+# ==========================================
+# FUNGSI PESAN DATA KOSONG
+# ==========================================
 def show_empty_message():
-    """
-    Menampilkan pesan standar ketika hasil filter data kosong.
-    """
-    st.info("Data tidak tersedia untuk kombinasi filter yang dipilih.")
+    st.info("Tidak ada data yang cocok dengan filter yang dipilih.")
 
-
-# ======================================================
-# HALAMAN: RINGKASAN UMUM
-# ======================================================
+# ==========================================
+# HALAMAN 1 — RINGKASAN UMUM
+# ==========================================
 if page == "Ringkasan umum":
+
     try:
         with st.spinner("Memuat data peminjaman..."):
             df_pinjam = load_peminjaman_detail()
     except Exception as e:
-        st.error("Gagal memuat data peminjaman dari database. Periksa koneksi ke MySQL.")
+        st.error("Gagal memuat data. Pastikan MySQL berjalan.")
         st.exception(e)
         st.stop()
 
-    st.write(
-        "Halaman ini menyajikan ringkasan aktivitas perpustakaan berdasarkan data "
-        "peminjaman, anggota, dan koleksi buku."
-    )
+    st.write("Halaman ini menampilkan gambaran umum aktivitas perpustakaan.")
 
-    # ----------------- Kartu ringkasan (KPI) -----------------
+    # KPI CARD
     total_peminjaman = len(df_pinjam)
     total_anggota = df_pinjam["id_anggota"].nunique()
     total_buku = df_pinjam["id_buku"].nunique()
@@ -131,144 +118,106 @@ if page == "Ringkasan umum":
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.markdown('<div class="metric-label">Total peminjaman</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-value">{total_peminjaman}</div>', unsafe_allow_html=True)
-        st.markdown('<div class="metric-sub">Jumlah seluruh transaksi peminjaman</div>', unsafe_allow_html=True)
+        st.markdown('<div class="metric-sub">Seluruh transaksi tercatat</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
+
     with col2:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        st.markdown('<div class="metric-label">Anggota aktif</div>', unsafe_allow_html=True)
+        st.markdown('<div class="metric-label">Anggota unik</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-value">{total_anggota}</div>', unsafe_allow_html=True)
-        st.markdown('<div class="metric-sub">Pernah melakukan peminjaman</div>', unsafe_allow_html=True)
+        st.markdown('<div class="metric-sub">Yang pernah meminjam</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
+
     with col3:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        st.markdown('<div class="metric-label">Judul dipinjam</div>', unsafe_allow_html=True)
+        st.markdown('<div class="metric-label">Total buku dipinjam</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-value">{total_buku}</div>', unsafe_allow_html=True)
-        st.markdown('<div class="metric-sub">Berdasarkan ID buku yang tercatat</div>', unsafe_allow_html=True)
+        st.markdown('<div class="metric-sub">Judul / eksemplar unik</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
+
     with col4:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.markdown('<div class="metric-label">Total denda</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="metric-value">Rp {total_denda:,.0f}</div>', unsafe_allow_html=True)
-        st.markdown('<div class="metric-sub">Akumulasi dari seluruh transaksi</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-value">Rp {total_denda:,}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="metric-sub">Akumulasi seluruh transaksi</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("### Ikhtisar grafik")
-    st.write(
-        "Bagian berikut menampilkan grafik-grafik untuk melihat pola peminjaman "
-        "dari sisi waktu, fakultas, kategori buku, dan durasi peminjaman."
-    )
+    st.markdown("### Ikhtisar Grafik")
 
     tab1, tab2, tab3, tab4 = st.tabs(
-        ["Perkembangan peminjaman", "Per fakultas", "Per kategori buku", "Durasi peminjaman"]
+        ["Perkembangan peminjaman", "Per fakultas", "Fakultas × kategori", "Durasi peminjaman"]
     )
 
-    # Tab 1: Perkembangan peminjaman dari waktu ke waktu
+    # -- TAB 1: Tren bulanan
     with tab1:
-        st.subheader("Perkembangan peminjaman dari waktu ke waktu")
-        st.caption(
-            "Grafik ini memperlihatkan perkembangan jumlah peminjaman setiap bulan, "
-            "yang dikelompokkan berdasarkan status peminjaman."
-        )
+        fig = chart_tren_bulanan_status(df_pinjam)
+        st.plotly_chart(fig, use_container_width=True)
 
-        fig_tren = chart_tren_bulanan_status(df_pinjam)
-        st.plotly_chart(fig_tren, use_container_width=True)
+        df_pinjam["bulan"] = df_pinjam["tgl_pinjam"].dt.to_period("M").astype(str)
+        per_bulan = df_pinjam.groupby("bulan").size().reset_index(name="jumlah")
 
-        # Insight otomatis: bulan dengan peminjaman tertinggi
-        df_bulan = df_pinjam.copy()
-        df_bulan["bulan"] = df_bulan["tgl_pinjam"].dt.to_period("M").astype(str)
-        per_bulan = df_bulan.groupby("bulan").size().reset_index(name="jumlah")
         if not per_bulan.empty:
             puncak = per_bulan.sort_values("jumlah", ascending=False).iloc[0]
             st.caption(
-                f"Periode dengan jumlah peminjaman tertinggi adalah {puncak['bulan']} "
-                f"dengan {puncak['jumlah']} transaksi."
+                f"📌 **Bulan dengan peminjaman tertinggi:** {puncak['bulan']} ({puncak['jumlah']} transaksi)"
             )
 
-    # Tab 2: Peminjaman per fakultas
+    # -- TAB 2: Per fakultas
     with tab2:
-        st.subheader("Peminjaman per fakultas")
-        st.caption(
-            "Grafik ini digunakan untuk membandingkan intensitas peminjaman "
-            "antar fakultas."
-        )
-        fig_fak, per_fak = chart_peminjaman_per_fakultas(df_pinjam)
-        st.plotly_chart(fig_fak, use_container_width=True)
+        fig, per_fak = chart_peminjaman_per_fakultas(df_pinjam)
+        st.plotly_chart(fig, use_container_width=True)
 
-        if not per_fak.empty:
-            fak_tertinggi = per_fak.sort_values("jumlah", ascending=False).iloc[0]
+        if len(per_fak) > 0:
+            f_top = per_fak.sort_values("jumlah", ascending=False).iloc[0]
             st.caption(
-                f"Fakultas dengan peminjaman tertinggi adalah {fak_tertinggi['nama_fakultas']} "
-                f"dengan {fak_tertinggi['jumlah']} transaksi."
+                f"🏆 Fakultas dengan peminjaman terbanyak adalah **{f_top['nama_fakultas']}** "
+                f"dengan {f_top['jumlah']} transaksi."
             )
 
-    # Tab 3: Pola peminjaman berdasarkan fakultas dan kategori buku
+    # -- TAB 3: Heatmap Fakultas × Kategori
     with tab3:
-        st.subheader("Peminjaman berdasarkan fakultas dan kategori buku")
-        st.caption(
-            "Grafik ini menampilkan pola peminjaman berdasarkan kombinasi fakultas "
-            "dan kategori buku. Warna yang lebih gelap menunjukkan jumlah peminjaman yang lebih besar."
-        )
-        fig_heat, per_fak_kat = chart_heatmap_fakultas_kategori(df_pinjam)
-        if fig_heat is not None:
-            st.plotly_chart(fig_heat, use_container_width=True)
+        fig, per_fak_kat = chart_heatmap_fakultas_kategori(df_pinjam)
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
 
-            # Insight otomatis: kombinasi fakultas-kategori tertinggi
-            baris_tertinggi = per_fak_kat.sort_values("jumlah", ascending=False).iloc[0]
+            top = per_fak_kat.sort_values("jumlah", ascending=False).iloc[0]
             st.caption(
-                f"Kombinasi paling sering adalah Fakultas {baris_tertinggi['nama_fakultas']} "
-                f"dengan kategori {baris_tertinggi['kategori_buku']} "
-                f"sebanyak {baris_tertinggi['jumlah']} peminjaman."
+                f"🔥 Kombinasi paling dominan adalah **{top['nama_fakultas']} × {top['kategori_buku']}** "
+                f"dengan {top['jumlah']} peminjaman."
             )
         else:
             show_empty_message()
 
-    # Tab 4: Rata-rata durasi peminjaman per fakultas
+    # -- TAB 4: Durasi per fakultas
     with tab4:
-        st.subheader("Rata-rata durasi peminjaman per fakultas")
-        st.caption(
-            "Grafik ini digunakan untuk melihat kecenderungan lama peminjaman di setiap "
-            "fakultas."
-        )
-        fig_durasi, durasi_fak = chart_durasi_rata_per_fakultas(df_pinjam)
+        fig, durasi = chart_durasi_rata_per_fakultas(df_pinjam)
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
 
-        if fig_durasi is not None:
-            st.plotly_chart(fig_durasi, use_container_width=True)
-            fak_durasi_top = durasi_fak.sort_values("rata_durasi", ascending=False).iloc[0]
+            top = durasi.sort_values("rata_durasi", ascending=False).iloc[0]
             st.caption(
-                f"Fakultas dengan rata-rata durasi peminjaman paling lama adalah "
-                f"{fak_durasi_top['nama_fakultas']} "
-                f"dengan rata-rata {fak_durasi_top['rata_durasi']:.1f} hari."
+                f"⏳ Fakultas dengan rata-rata durasi peminjaman terlama: **{top['nama_fakultas']}** "
+                f"({top['rata_durasi']:.1f} hari)."
             )
         else:
             show_empty_message()
 
-# ======================================================
-# HALAMAN: DATA PEMINJAMAN
-# ======================================================
+# ==========================================
+# HALAMAN 2 — DATA PEMINJAMAN
+# ==========================================
 elif page == "Data peminjaman":
-    st.subheader("Data peminjaman buku")
-    st.write(
-        "Halaman ini menampilkan data peminjaman yang dapat difilter berdasarkan "
-        "rentang tanggal, fakultas, dan status peminjaman."
-    )
 
-    try:
-        with st.spinner("Memuat data peminjaman..."):
-            df = load_peminjaman_detail()
-    except Exception as e:
-        st.error("Gagal memuat data peminjaman dari database. Periksa koneksi ke MySQL.")
-        st.exception(e)
-        st.stop()
+    st.subheader("Data Peminjaman Buku")
 
-    # ----------------- Filter di sidebar -----------------
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Filter peminjaman")
+    df = load_peminjaman_detail()
 
+    # ===== FILTER =====
+    st.sidebar.subheader("Filter Peminjaman")
     min_date = df["tgl_pinjam"].min().date()
     max_date = df["tgl_pinjam"].max().date()
 
     date_range = st.sidebar.date_input(
-        "Rentang tanggal peminjaman",
+        "Rentang tanggal",
         value=(min_date, max_date),
         min_value=min_date,
         max_value=max_date
@@ -279,217 +228,122 @@ elif page == "Data peminjaman":
     else:
         start_date = end_date = date_range
 
-    fakultas_list = ["(Semua)"] + sorted(df["nama_fakultas"].dropna().unique().tolist())
-    status_list = ["(Semua)"] + sorted(df["status_peminjaman"].dropna().unique().tolist())
+    fakultas_list = ["(Semua)"] + sorted(df["nama_fakultas"].unique())
+    status_list = ["(Semua)"] + sorted(df["status_peminjaman"].unique())
 
-    fakultas_pilih = st.sidebar.selectbox("Fakultas", fakultas_list)
-    status_pilih = st.sidebar.selectbox("Status peminjaman", status_list)
+    fak_filter = st.sidebar.selectbox("Fakultas", fakultas_list)
+    stat_filter = st.sidebar.selectbox("Status", status_list)
 
-    # Terapkan filter ke DataFrame
+    # APPLY FILTER
     df_filtered = df[
         (df["tgl_pinjam"].dt.date >= start_date) &
         (df["tgl_pinjam"].dt.date <= end_date)
-    ].copy()
+    ]
 
-    if fakultas_pilih != "(Semua)":
-        df_filtered = df_filtered[df_filtered["nama_fakultas"] == fakultas_pilih]
+    if fak_filter != "(Semua)":
+        df_filtered = df_filtered[df_filtered["nama_fakultas"] == fak_filter]
 
-    if status_pilih != "(Semua)":
-        df_filtered = df_filtered[df_filtered["status_peminjaman"] == status_pilih]
+    if stat_filter != "(Semua)":
+        df_filtered = df_filtered[df_filtered["status_peminjaman"] == stat_filter]
 
-    df_filtered = df_filtered.sort_values("tgl_pinjam", ascending=False)
-
-    # Ringkasan kondisi filter yang sedang aktif
     st.caption(
-        f"Data ditampilkan untuk periode {start_date} sampai {end_date}"
-        + (f", Fakultas {fakultas_pilih}" if fakultas_pilih != "(Semua)" else ", semua fakultas")
-        + (f", status {status_pilih}." if status_pilih != "(Semua)" else ", semua status.")
+        f"Menampilkan data {start_date} — {end_date}, "
+        f"{'Fakultas ' + fak_filter if fak_filter != '(Semua)' else 'semua fakultas'}, "
+        f"{'Status ' + stat_filter if stat_filter != '(Semua)' else 'semua status'}."
     )
 
-    # ----------------- Tabel dan tombol unduh -----------------
-    with st.expander("Tabel data peminjaman (setelah filter)"):
+    # TABLE
+    with st.expander("Tabel Data Peminjaman"):
         st.dataframe(df_filtered, use_container_width=True, height=350)
 
-    csv_peminjaman = df_filtered.to_csv(index=False).encode("utf-8")
     st.download_button(
-        label="Unduh data peminjaman (CSV)",
-        data=csv_peminjaman,
-        file_name="peminjaman_filtered.csv",
+        label="Unduh Data (CSV)",
+        data=df_filtered.to_csv(index=False).encode("utf-8"),
+        file_name="peminjaman.csv",
         mime="text/csv"
     )
 
-    # ----------------- Angka ringkasan sesuai filter -----------------
+    # KPI untuk halaman ini
     col_k1, col_k2, col_k3 = st.columns(3)
-    with col_k1:
-        st.metric("Jumlah peminjaman", len(df_filtered))
-    with col_k2:
-        st.metric("Total denda", f"Rp {int(df_filtered['denda_buku'].sum()):,}")
-    with col_k3:
-        if df_filtered["durasi_peminjaman"].notna().any():
-            rata_durasi = df_filtered["durasi_peminjaman"].mean()
-            st.metric("Rata-rata durasi", f"{rata_durasi:.1f} hari")
-        else:
-            st.metric("Rata-rata durasi", "-")
+    col_k1.metric("Jumlah peminjaman", len(df_filtered))
+    col_k2.metric("Total denda", f"Rp {df_filtered['denda_buku'].sum():,}")
+    col_k3.metric(
+        "Rata-rata durasi",
+        f"{df_filtered['durasi_peminjaman'].mean():.1f} hari" if df_filtered["durasi_peminjaman"].notna().any() else "-"
+    )
 
-    # ----------------- Grafik per status dan lima judul teratas -----------------
+    # Grafik
     col1, col2 = st.columns(2)
-
     with col1:
-        st.subheader("Peminjaman per status peminjaman")
-        st.caption(
-            "Grafik ini digunakan untuk melihat komposisi status peminjaman, "
-            "misalnya berapa banyak yang masih dipinjam, hilang, atau sudah kembali."
-        )
-        fig_status, per_status = chart_peminjaman_per_status(df_filtered)
-        if fig_status is not None:
-            st.plotly_chart(fig_status, use_container_width=True)
-        else:
-            show_empty_message()
+        fig, _ = chart_peminjaman_per_status(df_filtered)
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.subheader("Lima judul buku paling sering dipinjam")
-        st.caption(
-            "Grafik ini menampilkan lima judul buku dengan frekuensi peminjaman tertinggi "
-            "pada kombinasi filter yang dipilih."
-        )
-        fig_top, top_judul = chart_top5_judul(df_filtered)
-        if fig_top is not None:
-            st.plotly_chart(fig_top, use_container_width=True)
+        fig, top = chart_top5_judul(df_filtered)
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
 
-            judul_top = top_judul.iloc[0]
-            st.caption(
-                f"Judul dengan peminjaman tertinggi adalah "
-                f"\"{judul_top['judul']}\" sebanyak {judul_top['jumlah']} kali."
-            )
-        else:
-            show_empty_message()
+    fig = chart_boxplot_durasi_per_status(df_filtered)
+    if fig:
+        st.plotly_chart(fig, use_container_width=True)
 
-    # ----------------- Boxplot durasi per status -----------------
-    st.subheader("Sebaran durasi peminjaman per status peminjaman")
-    st.caption(
-        "Grafik ini digunakan untuk melihat sebaran lama peminjaman untuk setiap status, "
-        "sehingga tampak apakah ada status tertentu dengan durasi peminjaman yang cenderung lebih lama."
-    )
-    fig_box = chart_boxplot_durasi_per_status(df_filtered)
-
-    if fig_box is not None:
-        st.plotly_chart(fig_box, use_container_width=True)
-    else:
-        show_empty_message()
-
-# ======================================================
-# HALAMAN: DATA ANGGOTA
-# ======================================================
+# ==========================================
+# HALAMAN 3 — DATA ANGGOTA
+# ==========================================
 elif page == "Data anggota":
-    st.subheader("Data anggota perpustakaan")
-    st.write(
-        "Halaman ini menampilkan data anggota perpustakaan dan ringkasan berdasarkan "
-        "status dan fakultas."
-    )
 
-    try:
-        with st.spinner("Memuat data anggota..."):
-            df_anggota = load_anggota()
-    except Exception as e:
-        st.error("Gagal memuat data anggota dari database. Periksa koneksi ke MySQL.")
-        st.exception(e)
-        st.stop()
+    st.subheader("Data Anggota Perpustakaan")
+    df_a = load_anggota()
 
-    # Pencarian nama anggota
-    search_nama = st.text_input(
-        "Pencarian nama anggota",
-        placeholder="Ketik nama atau sebagian nama anggota..."
-    )
-    df_anggota_view = df_anggota.copy()
-    if search_nama:
-        df_anggota_view = df_anggota_view[
-            df_anggota_view["nama_anggota"].str.contains(search_nama, case=False, na=False)
-        ]
+    search = st.text_input("Cari nama anggota", placeholder="ketik nama...")
 
-    with st.expander("Tabel data anggota"):
-        st.dataframe(df_anggota_view, use_container_width=True, height=350)
+    df_view = df_a.copy()
+    if search:
+        df_view = df_view[df_view["nama_anggota"].str.contains(search, case=False)]
 
-    csv_anggota = df_anggota_view.to_csv(index=False).encode("utf-8")
+    with st.expander("Tabel Anggota"):
+        st.dataframe(df_view, use_container_width=True, height=350)
+
     st.download_button(
-        label="Unduh data anggota (CSV)",
-        data=csv_anggota,
-        file_name="anggota.csv",
-        mime="text/csv"
+        "Unduh Data (CSV)",
+        df_view.to_csv(index=False).encode("utf-8"),
+        "anggota.csv",
+        "text/csv"
     )
 
     col1, col2 = st.columns(2)
-
     with col1:
-        st.subheader("Jumlah anggota per status")
-        st.caption(
-            "Grafik ini digunakan untuk melihat komposisi jenis anggota yang terdaftar "
-            "di perpustakaan."
-        )
-        fig_status = chart_anggota_per_status(df_anggota_view)
-        st.plotly_chart(fig_status, use_container_width=True)
-
+        st.plotly_chart(chart_anggota_per_status(df_view), use_container_width=True)
     with col2:
-        st.subheader("Jumlah anggota per fakultas")
-        st.caption(
-            "Grafik ini menampilkan sebaran anggota perpustakaan berdasarkan fakultas asal."
-        )
-        fig_fak = chart_anggota_per_fakultas_treemap(df_anggota_view)
-        st.plotly_chart(fig_fak, use_container_width=True)
+        st.plotly_chart(chart_anggota_per_fakultas_treemap(df_view), use_container_width=True)
 
-# ======================================================
-# HALAMAN: DATA BUKU
-# ======================================================
+# ==========================================
+# HALAMAN 4 — DATA BUKU
+# ==========================================
 elif page == "Data buku":
-    st.subheader("Data koleksi buku")
-    st.write(
-        "Halaman ini menampilkan data koleksi buku dan ringkasan berdasarkan kategori "
-        "serta tahun terbit."
-    )
 
-    try:
-        with st.spinner("Memuat data buku..."):
-            df_buku = load_buku()
-    except Exception as e:
-        st.error("Gagal memuat data buku dari database. Periksa koneksi ke MySQL.")
-        st.exception(e)
-        st.stop()
+    st.subheader("Data Koleksi Buku")
+    df_b = load_buku()
 
-    # Pencarian judul buku
-    search_judul = st.text_input(
-        "Pencarian judul buku",
-        placeholder="Ketik judul atau sebagian judul buku..."
-    )
-    df_buku_view = df_buku.copy()
-    if search_judul:
-        df_buku_view = df_buku_view[
-            df_buku_view["judul"].str.contains(search_judul, case=False, na=False)
-        ]
+    search = st.text_input("Cari judul buku", placeholder="ketik judul...")
 
-    with st.expander("Tabel data buku"):
-        st.dataframe(df_buku_view, use_container_width=True, height=350)
+    df_view = df_b.copy()
+    if search:
+        df_view = df_view[df_view["judul"].str.contains(search, case=False)]
 
-    csv_buku = df_buku_view.to_csv(index=False).encode("utf-8")
+    with st.expander("Tabel Buku"):
+        st.dataframe(df_view, use_container_width=True, height=350)
+
     st.download_button(
-        label="Unduh data buku (CSV)",
-        data=csv_buku,
-        file_name="buku.csv",
-        mime="text/csv"
+        "Unduh Data (CSV)",
+        df_view.to_csv(index=False).encode("utf-8"),
+        "buku.csv",
+        "text/csv"
     )
 
     col1, col2 = st.columns(2)
-
     with col1:
-        st.subheader("Jumlah buku per kategori")
-        st.caption(
-            "Grafik ini digunakan untuk melihat sebaran koleksi buku berdasarkan kategori buku."
-        )
-        fig_kat = chart_buku_per_kategori(df_buku_view)
-        st.plotly_chart(fig_kat, use_container_width=True)
-
+        st.plotly_chart(chart_buku_per_kategori(df_view), use_container_width=True)
     with col2:
-        st.subheader("Jumlah buku per tahun terbit")
-        st.caption(
-            "Grafik ini memperlihatkan perkembangan jumlah koleksi berdasarkan tahun terbit buku."
-        )
-        fig_th = chart_buku_per_tahun(df_buku_view)
-        st.plotly_chart(fig_th, use_container_width=True)
+        st.plotly_chart(chart_buku_per_tahun(df_view), use_container_width=True)

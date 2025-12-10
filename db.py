@@ -1,51 +1,27 @@
-"""
-db.py
-Modul untuk menangani koneksi ke database MySQL dan pemuatan data
-ke dalam DataFrame pandas. Dipanggil dari app.py.
-"""
-
 import streamlit as st
 import pandas as pd
 import mysql.connector
 
-
 def get_connection():
-    """
-    Membuat koneksi ke database MySQL.
-    Sesuaikan parameter host, user, password, dan database
-    dengan konfigurasi lokal.
-    """
     return mysql.connector.connect(
         host="localhost",
-        user="root",        # sesuaikan jika berbeda
-        password="",        # isi jika MySQL memakai password
+        user="root",
+        password="",
         database="seperlima"
     )
 
-
 @st.cache_data
 def load_peminjaman_detail():
-    """
-    Mengambil data dari view vw_peminjaman_detail.
-    View ini menggabungkan informasi peminjaman, anggota, buku, prodi, dan fakultas.
-    Hasil dikembalikan sebagai DataFrame.
-    """
     conn = get_connection()
     df = pd.read_sql("SELECT * FROM vw_peminjaman_detail", conn)
     conn.close()
 
-    # Konversi kolom tanggal ke tipe datetime untuk memudahkan filter dan visualisasi
     df["tgl_pinjam"] = pd.to_datetime(df["tgl_pinjam"])
     df["tgl_kembali"] = pd.to_datetime(df["tgl_kembali"])
     return df
 
-
 @st.cache_data
 def load_anggota():
-    """
-    Mengambil data anggota beserta program studi dan fakultas.
-    Data digunakan untuk halaman 'Anggota'.
-    """
     conn = get_connection()
     query = """
         SELECT 
@@ -65,13 +41,8 @@ def load_anggota():
     conn.close()
     return df
 
-
 @st.cache_data
 def load_buku():
-    """
-    Mengambil data koleksi buku beserta judul dan kategori/klasifikasi.
-    Data digunakan untuk halaman 'Buku'.
-    """
     conn = get_connection()
     query = """
         SELECT 

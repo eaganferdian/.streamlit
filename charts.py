@@ -7,6 +7,12 @@ Setiap fungsi menerima DataFrame dan mengembalikan objek figure.
 import plotly.express as px
 import pandas as pd
 
+# Peta warna khusus fakultas ITK
+FAKULTAS_COLOR_MAP = {
+    "Fakultas Sains dan Teknologi Informasi": "#3B82F6",      # biru
+    "Fakultas Pembangunan Berkelanjutan": "#22C55E",          # hijau
+    "Fakultas Rekayasa dan Teknologi Industri": "#EF4444",    # merah
+}
 
 # ==============================
 # Grafik untuk halaman Ringkasan
@@ -14,8 +20,8 @@ import pandas as pd
 
 def chart_tren_bulanan_status(df_pinjam: pd.DataFrame):
     """
-    Membuat grafik batang bertumpuk (stacked bar) jumlah peminjaman per bulan
-    yang dikelompokkan berdasarkan status peminjaman.
+    Grafik batang bertumpuk jumlah peminjaman per bulan,
+    dikelompokkan berdasarkan status peminjaman.
     """
     df = df_pinjam.copy()
     df["bulan"] = df["tgl_pinjam"].dt.to_period("M").astype(str)
@@ -42,9 +48,16 @@ def chart_tren_bulanan_status(df_pinjam: pd.DataFrame):
 
 def chart_peminjaman_per_fakultas(df_pinjam: pd.DataFrame):
     """
-    Membuat grafik batang jumlah peminjaman per fakultas.
+    Grafik batang jumlah peminjaman per fakultas.
+    Menggunakan warna khusus per fakultas.
     """
     per_fak = df_pinjam.groupby("nama_fakultas").size().reset_index(name="jumlah")
+
+    # Urutan kategori sesuai mapping warna (kalau ada)
+    kategori_fakultas = [
+        f for f in FAKULTAS_COLOR_MAP.keys()
+        if f in per_fak["nama_fakultas"].unique()
+    ]
 
     fig = px.bar(
         per_fak,
@@ -52,17 +65,20 @@ def chart_peminjaman_per_fakultas(df_pinjam: pd.DataFrame):
         y="jumlah",
         color="nama_fakultas",
         title="Peminjaman per fakultas",
+        color_discrete_map=FAKULTAS_COLOR_MAP,
+        category_orders={"nama_fakultas": kategori_fakultas},
     )
     fig.update_layout(
         xaxis_title="Fakultas",
-        yaxis_title="Jumlah peminjaman"
+        yaxis_title="Jumlah peminjaman",
+        showlegend=False
     )
     return fig, per_fak
 
 
 def chart_heatmap_fakultas_kategori(df_pinjam: pd.DataFrame):
     """
-    Membuat peta panas (heatmap) peminjaman berdasarkan kombinasi
+    Peta panas (heatmap) peminjaman berdasarkan kombinasi
     fakultas dan kategori buku.
     """
     per_fak_kat = (
@@ -92,7 +108,7 @@ def chart_heatmap_fakultas_kategori(df_pinjam: pd.DataFrame):
 
 def chart_durasi_rata_per_fakultas(df_pinjam: pd.DataFrame):
     """
-    Membuat grafik batang rata-rata durasi peminjaman per fakultas.
+    Grafik batang rata-rata durasi peminjaman per fakultas.
     """
     durasi_fak = (
         df_pinjam.groupby("nama_fakultas")["durasi_peminjaman"]
@@ -103,16 +119,24 @@ def chart_durasi_rata_per_fakultas(df_pinjam: pd.DataFrame):
     if durasi_fak.empty:
         return None, durasi_fak
 
+    kategori_fakultas = [
+        f for f in FAKULTAS_COLOR_MAP.keys()
+        if f in durasi_fak["nama_fakultas"].unique()
+    ]
+
     fig = px.bar(
         durasi_fak,
         x="nama_fakultas",
         y="rata_durasi",
         color="nama_fakultas",
         title="Rata-rata durasi peminjaman per fakultas",
+        color_discrete_map=FAKULTAS_COLOR_MAP,
+        category_orders={"nama_fakultas": kategori_fakultas},
     )
     fig.update_layout(
         xaxis_title="Fakultas",
-        yaxis_title="Rata-rata durasi (hari)"
+        yaxis_title="Rata-rata durasi (hari)",
+        showlegend=False
     )
     return fig, durasi_fak
 
@@ -123,7 +147,7 @@ def chart_durasi_rata_per_fakultas(df_pinjam: pd.DataFrame):
 
 def chart_peminjaman_per_status(df_filtered: pd.DataFrame):
     """
-    Membuat grafik batang distribusi jumlah peminjaman per status peminjaman.
+    Grafik batang distribusi jumlah peminjaman per status peminjaman.
     """
     per_status = df_filtered.groupby("status_peminjaman").size().reset_index(name="jumlah")
 
@@ -139,14 +163,15 @@ def chart_peminjaman_per_status(df_filtered: pd.DataFrame):
     )
     fig.update_layout(
         xaxis_title="Status peminjaman",
-        yaxis_title="Jumlah peminjaman"
+        yaxis_title="Jumlah peminjaman",
+        showlegend=False
     )
     return fig, per_status
 
 
 def chart_top5_judul(df_filtered: pd.DataFrame):
     """
-    Membuat grafik batang horizontal untuk lima judul buku
+    Grafik batang horizontal untuk lima judul buku
     dengan frekuensi peminjaman tertinggi.
     """
     top_judul = (
@@ -167,6 +192,7 @@ def chart_top5_judul(df_filtered: pd.DataFrame):
         orientation="h",
         title="Lima judul buku dengan peminjaman tertinggi",
         color="jumlah",
+        text="jumlah",
     )
     fig.update_layout(
         xaxis_title="Jumlah peminjaman",
@@ -178,23 +204,53 @@ def chart_top5_judul(df_filtered: pd.DataFrame):
 
 def chart_boxplot_durasi_per_status(df_filtered: pd.DataFrame):
     """
-    Membuat boxplot sebaran durasi peminjaman untuk setiap status peminjaman.
+    (VERSI BARU – BUKAN BOXplot)
+    Grafik batang berkelompok untuk menunjukkan
+    jumlah peminjaman menurut:
+      - status peminjaman
+      - kelompok durasi (≤7, 8–14, 15–21, >21 hari)
+    Lebih mudah dijelaskan dibanding boxplot.
     """
     df_durasi = df_filtered[df_filtered["durasi_peminjaman"].notna()].copy()
 
     if df_durasi.empty:
         return None
 
-    fig = px.box(
-        df_durasi,
+    max_durasi = int(df_durasi["durasi_peminjaman"].max())
+    # Batas kelompok durasi (boleh diubah kalau mau)
+    bins = [0, 7, 14, 21, max_durasi + 1]
+    labels = ["≤ 7 hari", "8–14 hari", "15–21 hari", "> 21 hari"]
+
+    df_durasi["kelompok_durasi"] = pd.cut(
+        df_durasi["durasi_peminjaman"],
+        bins=bins,
+        labels=labels,
+        include_lowest=True
+    )
+
+    per_status_durasi = (
+        df_durasi
+        .groupby(["status_peminjaman", "kelompok_durasi"])
+        .size()
+        .reset_index(name="jumlah")
+    )
+
+    if per_status_durasi.empty:
+        return None
+
+    fig = px.bar(
+        per_status_durasi,
         x="status_peminjaman",
-        y="durasi_peminjaman",
-        points="all",
-        title="Sebaran durasi peminjaman per status peminjaman",
+        y="jumlah",
+        color="kelompok_durasi",
+        barmode="group",
+        title="Sebaran durasi peminjaman per status (kelompok hari)",
+        text="jumlah",
     )
     fig.update_layout(
         xaxis_title="Status peminjaman",
-        yaxis_title="Durasi peminjaman (hari)"
+        yaxis_title="Jumlah peminjaman",
+        legend_title_text="Kelompok durasi",
     )
     return fig
 
@@ -205,7 +261,7 @@ def chart_boxplot_durasi_per_status(df_filtered: pd.DataFrame):
 
 def chart_anggota_per_status(df_anggota_view: pd.DataFrame):
     """
-    Membuat grafik batang jumlah anggota per status keanggotaan.
+    Grafik batang jumlah anggota per status keanggotaan.
     """
     per_status = df_anggota_view.groupby("status_anggota").size().reset_index(name="jumlah")
 
@@ -218,14 +274,15 @@ def chart_anggota_per_status(df_anggota_view: pd.DataFrame):
     )
     fig.update_layout(
         xaxis_title="Status anggota",
-        yaxis_title="Jumlah anggota"
+        yaxis_title="Jumlah anggota",
+        showlegend=False
     )
     return fig
 
 
 def chart_anggota_per_fakultas_treemap(df_anggota_view: pd.DataFrame):
     """
-    Membuat treemap jumlah anggota per fakultas.
+    Treemap jumlah anggota per fakultas, dengan warna khusus per fakultas.
     """
     per_fak = df_anggota_view.groupby("nama_fakultas").size().reset_index(name="jumlah")
 
@@ -234,6 +291,8 @@ def chart_anggota_per_fakultas_treemap(df_anggota_view: pd.DataFrame):
         path=["nama_fakultas"],
         values="jumlah",
         title="Jumlah anggota per fakultas",
+        color="nama_fakultas",
+        color_discrete_map=FAKULTAS_COLOR_MAP,
     )
     return fig
 
@@ -244,7 +303,7 @@ def chart_anggota_per_fakultas_treemap(df_anggota_view: pd.DataFrame):
 
 def chart_buku_per_kategori(df_buku_view: pd.DataFrame):
     """
-    Membuat grafik batang horizontal jumlah buku per kategori.
+    Grafik batang horizontal jumlah buku per kategori.
     """
     per_kat = df_buku_view.groupby("kategori_buku").size().reset_index(name="jumlah")
 
@@ -255,6 +314,7 @@ def chart_buku_per_kategori(df_buku_view: pd.DataFrame):
         orientation="h",
         color="kategori_buku",
         title="Jumlah buku per kategori",
+        text="jumlah",
     )
     fig.update_layout(
         xaxis_title="Jumlah buku",
@@ -266,7 +326,7 @@ def chart_buku_per_kategori(df_buku_view: pd.DataFrame):
 
 def chart_buku_per_tahun(df_buku_view: pd.DataFrame):
     """
-    Membuat grafik garis jumlah buku per tahun terbit.
+    Grafik garis jumlah buku per tahun terbit.
     """
     per_tahun = df_buku_view.groupby("tahun_terbit").size().reset_index(name="jumlah")
 
