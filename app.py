@@ -23,6 +23,8 @@ from db import (
     load_pengarang,
     load_buku_pengarang,
     load_petugas,
+    load_judul,
+    load_klasifikasi,
 )
 
 from charts import (
@@ -40,7 +42,6 @@ from charts import (
     chart_buku_per_tahun,
 )
 
-
 # ======================================================
 # KONFIGURASI HALAMAN
 # ======================================================
@@ -51,27 +52,28 @@ st.set_page_config(
     layout="wide",
 )
 
-# CSS sederhana untuk header dan kartu ringkasan
+# CSS header dan kartu ringkasan
 st.markdown(
     """
- <style>
+    <style>
     .main-header {
-        background: linear-gradient(90deg, #2A004E, #500073, #C62300, #F14A00);
+        /* rak buku hangat: gelap → medium roast → leather */
+        background: linear-gradient(90deg, #090201, #381F08, #8C663E);
         padding: 18px 24px;
         border-radius: 18px;
-        color: white;
+        color: #F9FAFB;
         margin-bottom: 18px;
     }
     .metric-card {
         padding: 16px 18px;
         border-radius: 16px;
-        background: #500073;
-        border: 1px solid #C62300;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        background: #200E03;              /* Super black cokelat */
+        border: 1px solid #8C663E;        /* Cambridge Leather */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.7);
     }
     .metric-label {
         font-size: 0.8rem;
-        color: #E5E7EB;
+        color: #D1B38A;                   /* warm beige, mudah dibaca */
         text-transform: uppercase;
         letter-spacing: 0.08em;
     }
@@ -82,24 +84,24 @@ st.markdown(
     }
     .metric-sub {
         font-size: 0.8rem;
-        color: #D1D5DB;
+        color: #C7CED6;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
+
 # Header utama dashboard
 st.markdown(
     """
     <div class="main-header">
         <h2 style="margin-bottom: 4px;">Seperlima</h2>
-        <span>Dashboard data perpustakaan universitas berbasis database MySQL</span>
+        <span>Sistem Informasi Perpustakaan Kelompok 5</span>
     </div>
     """,
     unsafe_allow_html=True,
 )
-
 
 # ======================================================
 # SIDEBAR NAVIGASI & INFORMASI
@@ -114,15 +116,13 @@ page = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.markdown("Tentang aplikasi")
 st.sidebar.caption(
-    "Dashboard ini menggunakan database MySQL 'seperlima' sebagai sumber data "
+    "Dashboard ini menggunakan database MySQL `seperlima` sebagai sumber data "
     "anggota, petugas, buku, dan transaksi peminjaman."
 )
 
 
 def show_empty_message():
-    """
-    Pesan standar ketika hasil filter data kosong.
-    """
+    """Pesan standar ketika hasil filter data kosong."""
     st.info("Data tidak tersedia untuk kombinasi filter yang dipilih.")
 
 
@@ -203,66 +203,57 @@ if page == "Ringkasan":
     with tab1:
         st.subheader("Perkembangan peminjaman dari waktu ke waktu")
         fig_tren = chart_tren_bulanan_status(df_pinjam)
-        if fig_tren is not None:
-            st.plotly_chart(fig_tren, use_container_width=True)
+        st.plotly_chart(fig_tren, use_container_width=True)
 
-            df_bulan = df_pinjam.copy()
-            df_bulan["bulan"] = df_bulan["tgl_pinjam"].dt.to_period("M").astype(str)
-            per_bulan = df_bulan.groupby("bulan").size().reset_index(name="jumlah")
-            if not per_bulan.empty:
-                puncak = per_bulan.sort_values("jumlah", ascending=False).iloc[0]
-                st.caption(
-                    f"Periode dengan jumlah peminjaman tertinggi adalah {puncak['bulan']} "
-                    f"dengan {puncak['jumlah']} transaksi."
-                )
-        else:
-            show_empty_message()
+        df_bulan = df_pinjam.copy()
+        df_bulan["bulan"] = df_bulan["tgl_pinjam"].dt.to_period("M").astype(str)
+        per_bulan = df_bulan.groupby("bulan").size().reset_index(name="jumlah")
+        if not per_bulan.empty:
+            puncak = per_bulan.sort_values("jumlah", ascending=False).iloc[0]
+            st.caption(
+                f"Periode dengan jumlah peminjaman tertinggi adalah {puncak['bulan']} "
+                f"dengan {puncak['jumlah']} transaksi."
+            )
 
     # Tab 2: Peminjaman per fakultas
     with tab2:
         st.subheader("Peminjaman per fakultas")
         fig_fak, per_fak = chart_peminjaman_per_fakultas(df_pinjam)
-        if fig_fak is not None:
-            st.plotly_chart(fig_fak, use_container_width=True)
+        st.plotly_chart(fig_fak, use_container_width=True)
 
+        if not per_fak.empty:
             fak_tertinggi = per_fak.iloc[0]
             st.caption(
                 f"Fakultas dengan jumlah peminjaman tertinggi adalah "
                 f"{fak_tertinggi['nama_fakultas']} dengan {fak_tertinggi['jumlah']} transaksi."
             )
-        else:
-            show_empty_message()
 
     # Tab 3: Peminjaman per kategori buku
     with tab3:
         st.subheader("Peminjaman per kategori buku")
         fig_kat, per_kat = chart_peminjaman_per_kategori(df_pinjam)
-        if fig_kat is not None:
-            st.plotly_chart(fig_kat, use_container_width=True)
+        st.plotly_chart(fig_kat, use_container_width=True)
 
+        if not per_kat.empty:
             kat_tertinggi = per_kat.iloc[0]
             st.caption(
                 f"Kategori buku dengan peminjaman tertinggi adalah "
                 f"{kat_tertinggi['kategori_buku']} dengan {kat_tertinggi['jumlah']} transaksi."
             )
-        else:
-            show_empty_message()
 
     # Tab 4: Durasi peminjaman per fakultas
     with tab4:
         st.subheader("Rata-rata durasi peminjaman per fakultas")
         fig_durasi, durasi_fak = chart_durasi_rata_per_fakultas(df_pinjam)
-        if fig_durasi is not None:
-            st.plotly_chart(fig_durasi, use_container_width=True)
+        st.plotly_chart(fig_durasi, use_container_width=True)
 
+        if not durasi_fak.empty:
             fak_durasi_top = durasi_fak.iloc[0]
             st.caption(
                 f"Fakultas dengan rata-rata durasi peminjaman paling lama adalah "
                 f"{fak_durasi_top['nama_fakultas']} "
                 f"dengan rata-rata {fak_durasi_top['rata_durasi']:.1f} hari."
             )
-        else:
-            show_empty_message()
 
 # ======================================================
 # HALAMAN: PEMINJAMAN
@@ -326,22 +317,18 @@ elif page == "Peminjaman":
 
     if fakultas_pilih != "(Semua)":
         df_filtered = df_filtered[df_filtered["nama_fakultas"] == fakultas_pilih]
-
     if prodi_pilih != "(Semua)":
         df_filtered = df_filtered[df_filtered["nama_prodi"] == prodi_pilih]
-
     if status_anggota_pilih != "(Semua)":
         df_filtered = df_filtered[df_filtered["status_anggota"] == status_anggota_pilih]
-
     if status_peminjaman_pilih != "(Semua)":
         df_filtered = df_filtered[df_filtered["status_peminjaman"] == status_peminjaman_pilih]
-
     if kategori_pilih != "(Semua)":
         df_filtered = df_filtered[df_filtered["kategori_buku"] == kategori_pilih]
 
     df_filtered = df_filtered.sort_values("tgl_pinjam", ascending=False)
 
-    # Ringkasan kondisi filter yang sedang aktif
+    # Ringkasan kondisi filter
     st.caption(
         f"Data ditampilkan untuk periode {start_date} sampai {end_date}"
         + (f", fakultas {fakultas_pilih}" if fakultas_pilih != "(Semua)" else ", semua fakultas")
@@ -367,10 +354,8 @@ elif page == "Peminjaman":
     col_k1, col_k2, col_k3 = st.columns(3)
     with col_k1:
         st.metric("Jumlah peminjaman", len(df_filtered))
-
     with col_k2:
         st.metric("Total denda", f"Rp {int(df_filtered['denda_buku'].sum()):,}")
-
     with col_k3:
         if df_filtered["durasi_peminjaman"].notna().any():
             rata_durasi = df_filtered["durasi_peminjaman"].mean()
@@ -384,24 +369,19 @@ elif page == "Peminjaman":
     with col1:
         st.subheader("Peminjaman per status peminjaman")
         fig_status, per_status = chart_peminjaman_per_status(df_filtered)
-        if fig_status is not None:
-            st.plotly_chart(fig_status, use_container_width=True)
-        else:
-            show_empty_message()
+        st.plotly_chart(fig_status, use_container_width=True)
 
     with col2:
         st.subheader("Lima judul buku paling sering dipinjam")
         fig_top, top_judul = chart_top5_judul(df_filtered)
-        if fig_top is not None:
-            st.plotly_chart(fig_top, use_container_width=True)
+        st.plotly_chart(fig_top, use_container_width=True)
 
+        if not top_judul.empty:
             judul_top = top_judul.iloc[0]
             st.caption(
                 f"Judul dengan peminjaman tertinggi adalah "
                 f"\"{judul_top['judul']}\" sebanyak {judul_top['jumlah']} kali."
             )
-        else:
-            show_empty_message()
 
     # ----------------- Histogram durasi peminjaman -----------------
     st.subheader("Distribusi durasi peminjaman")
@@ -409,11 +389,8 @@ elif page == "Peminjaman":
         "Grafik ini menunjukkan sebaran lama peminjaman dalam satuan hari, "
         "sehingga terlihat apakah mayoritas peminjaman masih dalam batas waktu yang wajar."
     )
-    fig_hist = chart_hist_durasi(df_filtered)
-    if fig_hist is not None:
-        st.plotly_chart(fig_hist, use_container_width=True)
-    else:
-        show_empty_message()
+    fig_hist, _ = chart_hist_durasi(df_filtered)
+    st.plotly_chart(fig_hist, use_container_width=True)
 
     # ----------------- Penjelasan logika durasi dan denda -----------------
     with st.expander("Penjelasan singkat logika durasi dan denda"):
@@ -424,7 +401,7 @@ elif page == "Peminjaman":
             "- Kolom **denda_buku** pada tabel ini berisi nilai denda yang sudah dihitung sesuai skenario dummy."
         )
 
-    # ----------------- Contoh query SQL untuk presentasi -----------------
+    # ----------------- Contoh query SQL -----------------
     with st.expander("Contoh query SQL (JOIN beberapa tabel)"):
         st.code(
             """
@@ -502,18 +479,12 @@ elif page == "Anggota":
     with col1:
         st.subheader("Jumlah anggota per status")
         fig_status = chart_anggota_per_status(df_anggota_view)
-        if fig_status is not None:
-            st.plotly_chart(fig_status, use_container_width=True)
-        else:
-            show_empty_message()
+        st.plotly_chart(fig_status, use_container_width=True)
 
     with col2:
         st.subheader("Jumlah anggota per fakultas")
         fig_fak = chart_anggota_per_fakultas(df_anggota_view)
-        if fig_fak is not None:
-            st.plotly_chart(fig_fak, use_container_width=True)
-        else:
-            show_empty_message()
+        st.plotly_chart(fig_fak, use_container_width=True)
 
 # ======================================================
 # HALAMAN: BUKU
@@ -548,9 +519,8 @@ elif page == "Buku":
         df_buku_view = df_buku_view[
             df_buku_view["judul"].str.contains(search_judul, case=False, na=False)
         ]
-    
-    # Atur urutan kolom: kode_judul, kode_klasifikasi, kode_pengarang
-    # diletakkan sebelum kolom eksemplar
+
+    # Urutan kolom: tampilkan kode_* sebelum eksemplar
     cols_order = [
         "id_buku",
         "kode_judul",
@@ -566,7 +536,6 @@ elif page == "Buku":
     existing_cols = [c for c in cols_order if c in df_buku_view.columns]
     df_buku_view = df_buku_view[existing_cols]
 
-
     # Filter kategori dan status buku
     kategori_list = ["(Semua)"] + sorted(df_buku["kategori_buku"].dropna().unique().tolist())
     status_buku_list = ["(Semua)"] + sorted(df_buku["status_buku"].dropna().unique().tolist())
@@ -579,7 +548,6 @@ elif page == "Buku":
 
     if kategori_pilih != "(Semua)":
         df_buku_view = df_buku_view[df_buku_view["kategori_buku"] == kategori_pilih]
-
     if status_buku_pilih != "(Semua)":
         df_buku_view = df_buku_view[df_buku_view["status_buku"] == status_buku_pilih]
 
@@ -599,28 +567,19 @@ elif page == "Buku":
     with col1:
         st.subheader("Jumlah buku per kategori")
         fig_kat = chart_buku_per_kategori(df_buku_view)
-        if fig_kat is not None:
-            st.plotly_chart(fig_kat, use_container_width=True)
-        else:
-            show_empty_message()
+        st.plotly_chart(fig_kat, use_container_width=True)
 
     with col2:
         st.subheader("Komposisi status koleksi buku")
-        fig_status_buku = chart_buku_per_status(df_buku_view)
-        if fig_status_buku is not None:
-            st.plotly_chart(fig_status_buku, use_container_width=True)
-        else:
-            show_empty_message()
+        fig_status_buku, _ = chart_buku_per_status(df_buku_view)
+        st.plotly_chart(fig_status_buku, use_container_width=True)
 
     st.subheader("Jumlah buku per tahun terbit")
     fig_th = chart_buku_per_tahun(df_buku_view)
-    if fig_th is not None:
-        st.plotly_chart(fig_th, use_container_width=True)
-    else:
-        show_empty_message()
+    st.plotly_chart(fig_th, use_container_width=True)
 
 # ======================================================
-# HALAMAN: REFERENSI DATA (SEMUA TABEL DITAMPILKAN)
+# HALAMAN: REFERENSI DATA
 # ======================================================
 
 elif page == "Referensi data":
@@ -630,8 +589,8 @@ elif page == "Referensi data":
         "fakultas, program studi, pengarang, relasi buku-pengarang, dan petugas."
     )
 
-    tab_fak, tab_prodi, tab_peng, tab_bupeng, tab_petugas = st.tabs(
-        ["Fakultas", "Program studi", "Pengarang", "Buku-pengarang", "Petugas"]
+    tab_fak, tab_prodi, tab_peng, tab_bupeng, tab_petugas, tab_judul, tab_klasifikasi = st.tabs(
+        ["Fakultas", "Program studi", "Pengarang", "Buku-pengarang", "Petugas", "Judul", "Klasifikasi"]
     )
 
     with tab_fak:
@@ -657,4 +616,15 @@ elif page == "Referensi data":
     with tab_petugas:
         df_pt = load_petugas()
         st.markdown("**Tabel petugas**")
+        st.dataframe(df_pt, use_container_width=True)
+
+
+    with tab_judul:
+        df_pt = load_judul()
+        st.markdown("**Tabel judul**")
+        st.dataframe(df_pt, use_container_width=True)
+
+    with tab_klasifikasi:
+        df_pt = load_klasifikasi()
+        st.markdown("**Tabel klasifikasi**")
         st.dataframe(df_pt, use_container_width=True)
